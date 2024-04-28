@@ -3,6 +3,7 @@ from roundRobin import proceso
 from PyQt5.QtGui import QColor
 from threading import Thread
 from PyQt5 import uic
+import threading
 import time
 import sys
 
@@ -28,6 +29,7 @@ class VentanaPrincipal(QMainWindow):
     def __init__(self):
         self.data = None
         self.time_start = None
+        self.finished_process = []
 
         super(VentanaPrincipal, self).__init__()
         uic.loadUi("interfaz.ui", self)
@@ -74,6 +76,39 @@ class VentanaPrincipal(QMainWindow):
                     QMessageBox.critical(self, "Error", "La memoria está llena")
 
     def ejecutar_round_robin(self):
+        # try:
+        quantum = 2
+        while self.data:
+            for i in range(len(self.data)):
+                # cada proceso se ejecutara un maximo de 2 seg (quantum)
+                self.data[i].rafaga = max(0, int(self.data[i].rafaga) - quantum)
+
+                # se actualiza line_edit 'Planificador', proceso en ejecucion
+                self.lineEditPlanificador.setText(str(self.data[i].id))
+
+                # cambia el color de la fila en 'tablaMemoria' el texto es igual a a 'id' de ejecucion
+                rango = self.tablaMemoria.rowCount() - 1
+                for row in range(rango):
+                    item = self.tablaMemoria.item(row, 0)
+                    if item:
+                        self.tablaMemoria.item(row, 0).setBackground(
+                            QColor("lightgreen")
+                            if item.text() == str(self.data[i].id)
+                            else QColor("skyblue")
+                        )
+
+                time.sleep(2)
+
+                # si el proceso finalizo, se elimina de la lista
+                if self.data[i].rafaga == 0:
+                    self.data[i].finalizacion = QTime.currentTime()
+                    self.finished_process.append(self.data[i])
+                    self.data.pop(i)
+                    break
+        # except Exception as e:
+        #     print(e)
+
+    def actualizar_tabla_resultados(self):
         pass
 
     def iniciar_procesos(self):
@@ -101,7 +136,10 @@ class VentanaPrincipal(QMainWindow):
             self.pushButtonIniciar.setEnabled(False)
 
             self.actualizar_tabla_memoria()
-            self.ejecutar_round_robin()
+
+            round_robin = threading.Thread(target=self.ejecutar_round_robin)
+            round_robin.daemon = True
+            round_robin.start()
 
     def establecer_cantidad_procesos(self):
         cantidad_procesos = int(self.inputCantidadP.text())
