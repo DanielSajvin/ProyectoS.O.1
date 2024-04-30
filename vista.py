@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QTime, pyqtSignal
-from roundRobin import proceso
+from proceso import proceso
 from PyQt5.QtGui import QColor
 from threading import Thread
 from PyQt5 import uic
@@ -41,11 +41,22 @@ class VentanaPrincipal(QMainWindow):
         self.hilo_hora.daemon = True  # se hace un hilo "demonio", se ejecuta en segundo plano y finaliza al cerrar
 
         # inicializar widgets
+        self.showMaximized()
+
+        # set the memory size to 23
+        self.tablaMemoria.setRowCount(23)
+        for row in range(self.tablaMemoria.rowCount()):
+            self.tablaMemoria.setVerticalHeaderItem(row, QTableWidgetItem(hex(row)))
+
         for row in range(2):
             self.tablaMemoria.setItem(row, 0, QTableWidgetItem("S.O."))
             self.tablaMemoria.item(row, 0).setBackground(QColor("skyblue"))
 
         self.tablaMemoria.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tablaProcesos.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tablaResultados.horizontalHeader().setSectionResizeMode(
+            QHeaderView.Stretch
+        )
 
         # la ventana principal
         self.hilo_hora.start()
@@ -96,8 +107,10 @@ class VentanaPrincipal(QMainWindow):
         total_rows = 2
 
         for data in self.data:
+            data.base = hex(total_rows)
+
             for i in range(total_rows, int(data.rafaga) + total_rows):
-                if total_rows <= 15:
+                if total_rows <= self.tablaMemoria.rowCount() - 1:
                     self.tablaMemoria.setItem(i, 0, QTableWidgetItem(data.id))
                     self.tablaMemoria.item(i, 0).setBackground(QColor("skyblue"))
 
@@ -105,6 +118,8 @@ class VentanaPrincipal(QMainWindow):
 
                 else:
                     QMessageBox.critical(self, "Error", "La memoria está llena")
+
+            data.limite = hex(total_rows - 1)
 
     def inicializar_tabla_resultados(self):
         self.tablaResultados.setRowCount(len(self.data))
@@ -130,10 +145,14 @@ class VentanaPrincipal(QMainWindow):
             quantum = 2
             while self.data:
                 for i in range(len(self.data)):
-                    # Process the task for a maximum of 2 units
+                    # Process the task for a maximum of quantum units
                     self.data[i].rafaga = max(0, int(self.data[i].rafaga) - quantum)
 
-                    # Set the QLineEdit text to the process id
+                    program_counter = i + 1 if i + 1 < len(self.data) else 0
+
+                    self.lineEditBase.setText(str(self.data[i].base))
+                    self.lineEditLimite.setText(str(self.data[i].limite))
+                    self.lineEditContadorP.setText(str(self.data[program_counter].base))
                     self.lineEditPlanificador.setText(str(self.data[i].id))
                     self.actualizar_memoria.emit(i)
 
@@ -143,8 +162,6 @@ class VentanaPrincipal(QMainWindow):
                             break
 
                         index += 1
-
-                    print(f"index: {index}")
 
                     self.data_display[index].estado = "Ejecucion"
                     self.actualizar_resultados.emit(index)
@@ -165,7 +182,7 @@ class VentanaPrincipal(QMainWindow):
                         break
 
         except Exception as e:
-            print(e)
+            QMessageBox.critical(self, "Error", str(e))
 
     def iniciar_procesos(self):
         def check_tablaProcesos():
