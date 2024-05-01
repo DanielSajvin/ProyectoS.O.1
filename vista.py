@@ -79,12 +79,19 @@ class VentanaPrincipal(QMainWindow):
         rango = self.tablaMemoria.rowCount() - 1
         for row in range(rango):
             item = self.tablaMemoria.item(row, 0)
-            if item:
+            if item and item.text() != "":
                 self.tablaMemoria.item(row, 0).setBackground(
                     QColor("lightgreen")
-                    if item.text() == str(self.data[registry].id)
+                    if item.text() == str(self.data_display[registry].id)
                     else QColor("skyblue")
                 )
+
+                if (
+                    item.text() == str(self.data_display[registry].id)
+                    and self.data_display[registry].estado == "Finalizado"
+                ):
+                    self.tablaMemoria.item(row, 0).setBackground(QColor("white"))
+                    self.tablaMemoria.item(row, 0).setText("")
 
     def actualizar_tabla_resultados(self, registry):
         self.tablaResultados.setItem(
@@ -124,14 +131,14 @@ class VentanaPrincipal(QMainWindow):
     def inicializar_tabla_resultados(self):
         self.tablaResultados.setRowCount(len(self.data))
 
-        for row, proceso in enumerate(self.data):
-            self.tablaResultados.setItem(row, 0, QTableWidgetItem(str(proceso.id)))
-            self.tablaResultados.setItem(row, 1, QTableWidgetItem(proceso.estado))
+        for row, data in enumerate(self.data):
+            self.tablaResultados.setItem(row, 0, QTableWidgetItem(str(data.id)))
+            self.tablaResultados.setItem(row, 1, QTableWidgetItem(data.estado))
             self.tablaResultados.setItem(
                 row,
                 2,
                 QTableWidgetItem(
-                    self.time_start.addSecs(int(proceso.llegada)).toString("hh:mm:ss")
+                    self.time_start.addSecs(int(data.llegada)).toString("hh:mm:ss")
                 ),
             )
             self.tablaResultados.setItem(row, 3, QTableWidgetItem("0"))
@@ -150,34 +157,36 @@ class VentanaPrincipal(QMainWindow):
 
                     program_counter = i + 1 if i + 1 < len(self.data) else 0
 
-                    self.lineEditBase.setText(str(self.data[i].base))
-                    self.lineEditLimite.setText(str(self.data[i].limite))
-                    self.lineEditContadorP.setText(str(self.data[program_counter].base))
-                    self.lineEditPlanificador.setText(str(self.data[i].id))
-                    self.actualizar_memoria.emit(i)
-
-                    index = 0
+                    data_display_index = 0
                     for data_display in self.data_display:
                         if data_display.id == self.data[i].id:
                             break
 
-                        index += 1
+                        data_display_index += 1
 
-                    self.data_display[index].estado = "Ejecucion"
-                    self.actualizar_resultados.emit(index)
+                    self.lineEditBase.setText(str(self.data[i].base))
+                    self.lineEditLimite.setText(str(self.data[i].limite))
+                    self.lineEditContadorP.setText(str(self.data[program_counter].base))
+                    self.lineEditPlanificador.setText(str(self.data[i].id))
+                    self.actualizar_memoria.emit(data_display_index)
+
+                    self.data_display[data_display_index].estado = "Ejecucion"
+                    self.actualizar_resultados.emit(data_display_index)
 
                     time.sleep(2)
 
-                    self.data_display[index].estado = "Listo"
-                    self.actualizar_resultados.emit(index)
+                    self.data_display[data_display_index].estado = "Listo"
+                    self.actualizar_resultados.emit(data_display_index)
 
                     # If the task is finished, remove it from the list
                     if self.data[i].rafaga == 0:
-                        self.data_display[index].finalizacion = (
+                        self.data_display[data_display_index].finalizacion = (
                             QTime.currentTime().toString("hh:mm:ss")
                         )
-                        self.data_display[index].estado = "Finalizado"
-                        self.actualizar_resultados.emit(index)
+                        self.data_display[data_display_index].estado = "Finalizado"
+
+                        self.actualizar_memoria.emit(data_display_index)
+                        self.actualizar_resultados.emit(data_display_index)
                         self.data.pop(i)
                         break
 
@@ -224,7 +233,6 @@ class VentanaPrincipal(QMainWindow):
         self.tablaResultados.setRowCount(cantidad_procesos)
         self.tablaProcesos.setRowCount(cantidad_procesos)
         self.groupCantidadP.setEnabled(False)
-        self.tablaMemoria.setEnabled(False)
         self.widget.setEnabled(True)
 
 
