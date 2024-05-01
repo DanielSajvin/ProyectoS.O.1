@@ -5,9 +5,11 @@ class proceso(object):
         self.rafaga = rafaga  # tiempo de consumo
         self.llegada = llegada  # tiempo de llegada
         self.rafagatmp = rafaga
+        self.estado = "Listo"  # Listo, Ejecucion, Bloqueado, Finalizado
         self.espera = 0
         self.retorno = 0
         self.finalizacion = 0
+
 
 # print("Algoritmo Roun Robin")
 
