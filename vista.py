@@ -233,7 +233,6 @@ class VentanaPrincipal(QMainWindow):
         self.tablaResultados.setRowCount(cantidad_procesos)
         self.tablaProcesos.setRowCount(cantidad_procesos)
         self.groupCantidadP.setEnabled(False)
-        self.tablaMemoria.setEnabled(False)
         self.widget.setEnabled(True)
 
 
